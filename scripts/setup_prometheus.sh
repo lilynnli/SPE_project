@@ -1,6 +1,8 @@
 #!/bin/bash
 source ./common.env
 
+echo "PROMETHEUS_HOST is: $PROMETHEUS_HOST"
+
 ssh ${USER}@${PROMETHEUS_HOST} <<'EOF'
 sudo apt update
 sudo apt install -y wget tar
