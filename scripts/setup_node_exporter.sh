@@ -1,7 +1,7 @@
 #!/bin/bash
 source ./common.env
 
-for ip in ${LOAD_BALANCER_IP} ${BACKEND1_IP} ${BACKEND2_IP} ${CLIENT_IP}; do
+for ip in ${LOAD_BALANCER_IP} ${BACKEND1_IP} ${BACKEND2_IP} ${BACKEND3_IP} ${CLIENT_IP}; do
   ssh ${USER}@${ip} <<'EOF'
   wget https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz
   tar -xzf node_exporter-1.7.0.linux-amd64.tar.gz

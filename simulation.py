@@ -6,6 +6,7 @@ import pandas as pd
 from typing import Dict, List
 import json
 import os
+import sys
 
 # Set matplotlib to use non-interactive backend to avoid popup windows
 plt.switch_backend('Agg')
@@ -25,19 +26,15 @@ def generate_requests(num_requests: int, distribution: str = 'normal', **kwargs)
     else:
         raise ValueError(f"Unknown distribution: {distribution}")
 
-def run_simulation(balancer, requests: np.ndarray) -> dict:
-    """Run simulation with given load balancer and requests"""
-    balancer.reset()  # Reset the load balancer state
+def run_simulation(balancer, requests: np.ndarray):
+    balancer.reset()
     start_time = time.time()
-    
     for request in requests:
         balancer.assign_request(request)
-    
     end_time = time.time()
     metrics = balancer.get_load_metrics()
     metrics['execution_time'] = end_time - start_time
-    
-    return metrics
+    return metrics, balancer.get_server_loads().copy()
 
 def plot_comparison_results(all_results: Dict[str, List[Dict]], save_path: str = None):
     """Plot comparison results for all algorithms and distributions"""
@@ -69,51 +66,51 @@ def plot_comparison_results(all_results: Dict[str, List[Dict]], save_path: str =
                 comparison_data.append(avg_metrics)
     
     # Create comparison charts
-    fig, axes = plt.subplots(2, 2, figsize=(15, 12))
-    fig.suptitle('Load Balancing Algorithm Comparison', fontsize=16, fontweight='bold')
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    fig.suptitle('Load Balancing Algorithm Comparison', fontsize=18, fontweight='bold', y=0.98)
     
     # 1. Balance Score Comparison
     ax1 = axes[0, 0]
     balance_data = pd.DataFrame(comparison_data)
     pivot_balance = balance_data.pivot(index='Distribution', columns='Algorithm', values='Balance Score')
     pivot_balance.plot(kind='bar', ax=ax1, color=['#FF6B6B', '#4ECDC4', '#45B7D1'])
-    ax1.set_title('Load Balance Score (Higher is Better)')
+    ax1.set_title('Load Balance Score (Higher is Better)', pad=15)
     ax1.set_ylabel('Balance Score')
-    ax1.set_ylim(0, 1)
-    ax1.legend(title='Algorithm')
+    ax1.set_ylim(0, 1.05)
+    ax1.legend(title='Algorithm', loc='upper right')
     ax1.tick_params(axis='x', rotation=45)
     
     # 2. Standard Deviation Comparison (Lower is Better)
     ax2 = axes[0, 1]
     pivot_std = balance_data.pivot(index='Distribution', columns='Algorithm', values='Std Load')
     pivot_std.plot(kind='bar', ax=ax2, color=['#FF6B6B', '#4ECDC4', '#45B7D1'])
-    ax2.set_title('Load Standard Deviation (Lower is Better)')
+    ax2.set_title('Load Standard Deviation (Lower is Better)', pad=15)
     ax2.set_ylabel('Standard Deviation')
-    ax2.legend(title='Algorithm')
+    ax2.legend(title='Algorithm', loc='upper right')
     ax2.tick_params(axis='x', rotation=45)
     
     # 3. Throughput Comparison
     ax3 = axes[1, 0]
     pivot_throughput = balance_data.pivot(index='Distribution', columns='Algorithm', values='Requests/sec')
     pivot_throughput.plot(kind='bar', ax=ax3, color=['#FF6B6B', '#4ECDC4', '#45B7D1'])
-    ax3.set_title('Throughput (Requests per Second)')
+    ax3.set_title('Throughput (Requests per Second)', pad=15)
     ax3.set_ylabel('Requests/sec')
-    ax3.legend(title='Algorithm')
+    ax3.legend(title='Algorithm', loc='upper right')
     ax3.tick_params(axis='x', rotation=45)
     
     # 4. Execution Time Comparison
     ax4 = axes[1, 1]
     pivot_time = balance_data.pivot(index='Distribution', columns='Algorithm', values='Execution Time')
     pivot_time.plot(kind='bar', ax=ax4, color=['#FF6B6B', '#4ECDC4', '#45B7D1'])
-    ax4.set_title('Execution Time (Lower is Better)')
+    ax4.set_title('Execution Time (Lower is Better)', pad=15)
     ax4.set_ylabel('Time (seconds)')
-    ax4.legend(title='Algorithm')
+    ax4.legend(title='Algorithm', loc='upper right')
     ax4.tick_params(axis='x', rotation=45)
     
-    plt.tight_layout()
+    plt.tight_layout(pad=3.0)
     
     if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
         print(f"Comparison chart saved to: {save_path}")
     
     plt.close()  # Close the figure to free memory
@@ -126,55 +123,67 @@ def plot_server_loads_comparison(all_results: Dict[str, List[Dict]], save_path: 
     server_loads_data = {}
     for algo in all_results.keys():
         if all_results[algo]:
-            # Get the last run with normal distribution
+            # Get the last run with normal distribution and real server loads
             for result in reversed(all_results[algo]):
-                if 'Normal Distribution' in result:
-                    server_loads_data[algo] = result['Normal Distribution']
+                if 'Normal Distribution' in result and 'server_loads' in result:
+                    server_loads_data[algo] = result['server_loads']
                     break
     
     if not server_loads_data:
         return
     
     # Create server loads comparison chart
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
-    fig.suptitle('Server Load Distribution Comparison', fontsize=16, fontweight='bold')
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7))
+    fig.suptitle('Server Load Distribution Comparison', fontsize=18, fontweight='bold', y=0.95)
     
     # Bar chart
-    x = np.arange(5)  # 5 servers
+    x = np.arange(3)  # 3 servers
     width = 0.25
+    colors = ['#FF6B6B', '#4ECDC4', '#45B7D1']
     
-    for i, (algo, metrics) in enumerate(server_loads_data.items()):
-        # We need to get the actual server loads from the balancer
-        # For now, we'll show the metrics
-        loads = [metrics['mean_load']] * 5  # Simplified representation
-        ax1.bar(x + i*width, loads, width, label=algo, alpha=0.8)
+    for i, (algo, loads) in enumerate(server_loads_data.items()):
+        ax1.bar(x + i*width, loads, width, label=algo, alpha=0.8, color=colors[i])
     
     ax1.set_xlabel('Server Index')
     ax1.set_ylabel('Load')
-    ax1.set_title('Average Server Loads')
+    ax1.set_title('Average Server Loads', pad=15)
     ax1.set_xticks(x + width)
-    ax1.set_xticklabels(['Server 1', 'Server 2', 'Server 3', 'Server 4', 'Server 5'])
-    ax1.legend()
+    ax1.set_xticklabels(['Server 1', 'Server 2', 'Server 3'])
+    ax1.legend(loc='upper right')
     
     # Balance score comparison
     algorithms = list(server_loads_data.keys())
-    balance_scores = [server_loads_data[algo]['balance_score'] for algo in algorithms]
+    # calculate the average balance_score for each algorithm
+    balance_scores = []
+    for algo in algorithms:
+        # get all balance_scores for all distributions and all runs
+        scores = []
+        for result in all_results[algo]:
+            for dist_metrics in result.values():
+                if isinstance(dist_metrics, dict) and 'balance_score' in dist_metrics:
+                    scores.append(dist_metrics['balance_score'])
+        balance_scores.append(np.mean(scores))
     
     bars = ax2.bar(algorithms, balance_scores, color=['#FF6B6B', '#4ECDC4', '#45B7D1'], alpha=0.8)
-    ax2.set_title('Load Balance Score Comparison')
+    ax2.set_title('Load Balance Score Comparison', pad=20)  # Add padding to title
     ax2.set_ylabel('Balance Score')
-    ax2.set_ylim(0, 1)
+    ax2.set_ylim(0, 1.1)  # Increase y-axis limit to make room for labels
     
-    # Add value labels on bars
+    # Add value labels on bars with better positioning
     for bar, score in zip(bars, balance_scores):
         height = bar.get_height()
-        ax2.text(bar.get_x() + bar.get_width()/2., height + 0.01,
-                f'{score:.3f}', ha='center', va='bottom')
+        # Position labels either inside bars (if score > 0.1) or above (if score <= 0.1)
+        if score > 0.1:
+            ax2.text(bar.get_x() + bar.get_width()/2., height - 0.05,
+                    f'{score:.3f}', ha='center', va='top', color='white', fontweight='bold')
+        else:
+            ax2.text(bar.get_x() + bar.get_width()/2., height + 0.02,
+                    f'{score:.3f}', ha='center', va='bottom', fontweight='bold')
     
-    plt.tight_layout()
+    plt.tight_layout(pad=2.0)  # Add more padding around subplots
     
     if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
         print(f"Server loads comparison saved to: {save_path}")
     
     plt.close()
@@ -182,10 +191,12 @@ def plot_server_loads_comparison(all_results: Dict[str, List[Dict]], save_path: 
 def analyze_results(all_results: Dict[str, List[Dict]]) -> pd.DataFrame:
     """Analyze and compare results from different algorithms"""
     analysis_data = []
-    
+    valid_distributions = ['Normal Distribution', 'Exponential Distribution', 'Uniform Distribution']
     for balancer_name, results in all_results.items():
         for result in results:
             for dist_name, metrics in result.items():
+                if dist_name not in valid_distributions:
+                    continue  # 跳过server_loads等非分布项
                 analysis_data.append({
                     'Algorithm': balancer_name,
                     'Distribution': dist_name,
@@ -195,7 +206,6 @@ def analyze_results(all_results: Dict[str, List[Dict]]) -> pd.DataFrame:
                     'Requests/sec': metrics['requests_per_second'],
                     'Execution Time': metrics['execution_time']
                 })
-    
     df = pd.DataFrame(analysis_data)
     return df
 
@@ -210,6 +220,7 @@ def print_summary_report(comparison_data: List[Dict]):
     print("\n" + "="*80)
     print("LOAD BALANCING ALGORITHM PERFORMANCE SUMMARY")
     print("="*80)
+    sys.stdout.flush()  # Force flush
     
     df = pd.DataFrame(comparison_data)
     
@@ -241,8 +252,13 @@ def print_summary_report(comparison_data: List[Dict]):
     
     print("\n🔍 DETAILED METRICS BY ALGORITHM:")
     print("-" * 50)
+    sys.stdout.flush()  # Force flush
     
-    for algo in df['Algorithm'].unique():
+    algorithms = []
+    for algo in df['Algorithm']:
+        if algo not in algorithms:
+            algorithms.append(algo)
+    for algo in algorithms:
         algo_data = df[df['Algorithm'] == algo]
         print(f"\n{algo}:")
         print(f"  • Average Balance Score: {algo_data['Balance Score'].mean():.3f}")
@@ -251,14 +267,15 @@ def print_summary_report(comparison_data: List[Dict]):
         print(f"  • Average Execution Time: {algo_data['Execution Time'].mean():.4f}s")
     
     print("\n" + "="*80)
+    sys.stdout.flush()  # Force flush
 
 def main():
     # Set random seed for reproducibility
     set_random_seed(42)
     
     # Simulation parameters
-    num_servers = 5
-    num_requests = 1000
+    num_servers = 3
+    num_requests = 10000
     num_runs = 5  # Run multiple times to ensure reliability
     
     # Create results directory
@@ -275,7 +292,7 @@ def main():
     balancers = {
         'Round Robin': RoundRobinLoadBalancer(num_servers),
         'Least Connection': LeastConnectionLoadBalancer(num_servers),
-        'Weighted Round Robin': WeightedRoundRobinLoadBalancer(num_servers, weights=[1, 2, 3, 2, 1])
+        'Weighted Round Robin': WeightedRoundRobinLoadBalancer(num_servers, weights=[3, 1, 2])
     }
     
     # Store all results
@@ -285,6 +302,7 @@ def main():
     print(f"📊 Testing {len(balancers)} algorithms with {len(distributions)} distributions")
     print(f"🔄 Running {num_runs} iterations for reliability")
     print("-" * 60)
+    sys.stdout.flush()
     
     # Run simulations multiple times
     for run in range(num_runs):
@@ -295,16 +313,14 @@ def main():
             
             for balancer_name, balancer in balancers.items():
                 print(f"  Testing {balancer_name} with {dist_name}")
-                
-                metrics = run_simulation(balancer, requests)
-                results = {
-                    'server_loads': balancer.get_server_loads(),
-                    'metrics': metrics
-                }
-                
-                all_results[balancer_name].append({dist_name: metrics})
+                metrics, server_loads = run_simulation(balancer, requests)
+                all_results[balancer_name].append({
+                    dist_name: metrics,
+                    'server_loads': server_loads.tolist()
+                })
     
     print("\n📈 Generating comparison charts and reports...")
+    sys.stdout.flush()
     
     # Generate comparison charts
     comparison_data = plot_comparison_results(all_results, 'results/algorithm_comparison.png')
@@ -320,12 +336,13 @@ def main():
     # Save detailed results
     save_results(all_results, 'detailed_results')
     
-    print(f"\n✅ Simulation completed!")
-    print(f"📁 Results saved in 'results/' directory:")
-    print(f"   • algorithm_comparison.png - Main comparison chart")
-    print(f"   • server_loads_comparison.png - Server load distribution")
-    print(f"   • analysis_results.csv - Detailed data")
-    print(f"   • detailed_results.json - Raw simulation data")
+    print("\n✅ Simulation completed!")
+    print("📁 Results saved in 'results/' directory:")
+    print("   • algorithm_comparison.png - Main comparison chart")
+    print("   • server_loads_comparison.png - Server load distribution")
+    print("   • analysis_results.csv - Detailed data")
+    print("   • detailed_results.json - Raw simulation data")
+    sys.stdout.flush()  # Final flush
 
 if __name__ == "__main__":
     main() 

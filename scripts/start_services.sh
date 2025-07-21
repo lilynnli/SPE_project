@@ -27,13 +27,13 @@ start_service_if_needed ${LOAD_BALANCER_IP} "haproxy" "HAProxy"
 
 # Start Nginx on backend servers
 echo "🖥️  Checking Nginx on backend servers..."
-for ip in ${BACKEND1_IP} ${BACKEND2_IP}; do
+for ip in ${BACKEND1_IP} ${BACKEND2_IP} ${BACKEND3_IP}; do
   start_service_if_needed $ip "nginx" "Nginx"
 done
 
 # Start Node Exporter on all VMs (if monitoring is set up)
 echo "📊 Checking Node Exporter on all VMs..."
-for ip in ${LOAD_BALANCER_IP} ${BACKEND1_IP} ${BACKEND2_IP} ${CLIENT_IP}; do
+for ip in ${LOAD_BALANCER_IP} ${BACKEND1_IP} ${BACKEND2_IP} ${BACKEND3_IP} ${CLIENT_IP}; do
   start_service_if_needed $ip "node_exporter" "Node Exporter"
 done
 

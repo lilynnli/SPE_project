@@ -12,6 +12,7 @@ scrape_configs:
         - '${LOAD_BALANCER_IP}:9100'
         - '${BACKEND1_IP}:9100'
         - '${BACKEND2_IP}:9100'
+        - '${BACKEND3_IP}:9100'
         - '${CLIENT_IP}:9100'
 EOL
 
