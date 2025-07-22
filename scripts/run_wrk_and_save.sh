@@ -1,9 +1,9 @@
 #!/bin/bash
 source ./common.env
 
-# $1: connections  $2: duration  $3: url
+# $1: concurrency  $2: duration  $3: url
 if [ $# -ne 3 ]; then
-  echo "Usage: $0 <connections> <duration> <url>"
+  echo "Usage: $0 <concurrency> <duration> <url>"
   exit 1
 fi
 
@@ -12,6 +12,9 @@ RESULTS_DIR="../results"
 mkdir -p $RESULTS_DIR
 OUTFILE="$RESULTS_DIR/wrk_${1}c_${2}_${TIMESTAMP}.txt"
 
-ssh ${USER}@${CLIENT_IP} "wrk -t4 -c$1 -d$2 $3" | tee $OUTFILE
+url=$3
+[[ "${url}" != */ ]] && url="${url}/"
 
-echo "wrk output saved to $OUTFILE" 
+ssh ${USER}@${CLIENT_IP} "wrk -t4 -c$1 -d$2 $url" | tee $OUTFILE
+
+echo "wrk (long connection) output saved to $OUTFILE" 

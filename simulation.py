@@ -275,7 +275,7 @@ def main():
     
     # Simulation parameters
     num_servers = 3
-    num_requests = 10000
+    num_requests = 12000
     num_runs = 5  # Run multiple times to ensure reliability
     
     # Create results directory
