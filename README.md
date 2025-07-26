@@ -9,6 +9,8 @@ load_balancing_simulation/
 ├── simulation.py                # Main simulation script
 ├── load_balancer.py             # Core algorithm implementations
 ├── requirements.txt             # Python dependencies
+├── results/
+│   └── generate_requests_graph.py  # Request distribution visualization script
 ├── scripts/                     # Automation scripts for VM setup and testing
 │   ├── common.env
 │   ├── setup_load_balancer.sh
@@ -32,16 +34,32 @@ load_balancing_simulation/
 
 ## 1. Simulation (Python)
 
-- Run the simulation and generate performance metrics and plots:
+### Request Distribution Analysis
+First, visualize the different request load distributions used in the simulation:
+
+```bash
+python results/generate_requests_graph.py
+```
+
+This generates `results/request_distributions.png` showing:
+- **Lognormal Distribution**: Most realistic for web traffic (no negative values)
+- **Exponential Distribution**: Simulates bursty traffic patterns
+- **Uniform Distribution**: Tests worst-case load balancing scenarios
+- **Normal Distribution**: For comparison (includes negative values)
+
+### Main Simulation
+Run the simulation and generate performance metrics and plots:
 
 ```bash
 pip install -r requirements.txt
 python simulation.py
 ```
 
-- Algorithms: Round Robin, Least Connection, Weighted Round Robin
-- Request patterns: normal, exponential, uniform distributions
-- Outputs: server load distribution, balance score, CSV and PNG results
+- **Algorithms**: Round Robin, Least Connection, Weighted Round Robin
+- **Request patterns**: Lognormal, exponential, uniform distributions
+- **Outputs**: server load distribution, balance score, CSV and PNG results
+
+**Note**: The simulation now uses **Lognormal Distribution** instead of Normal Distribution to avoid negative request loads, which are unrealistic in real-world scenarios.
 
 ## 2. Real Environment (UTM VMs)
 

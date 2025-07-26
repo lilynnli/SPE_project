@@ -19,6 +19,8 @@ def generate_requests(num_requests: int, distribution: str = 'normal', **kwargs)
     """Generate request loads with different distributions"""
     if distribution == 'normal':
         return np.random.normal(kwargs.get('mean', 1.0), kwargs.get('std', 0.5), num_requests)
+    elif distribution == 'lognormal':
+        return np.random.lognormal(kwargs.get('mean', 0.0), kwargs.get('sigma', 0.5), num_requests)
     elif distribution == 'exponential':
         return np.random.exponential(kwargs.get('scale', 1.0), num_requests)
     elif distribution == 'uniform':
@@ -40,7 +42,7 @@ def plot_comparison_results(all_results: Dict[str, List[Dict]], save_path: str =
     """Plot comparison results for all algorithms and distributions"""
     # Prepare data for plotting
     algorithms = list(all_results.keys())
-    distributions = ['Normal Distribution', 'Exponential Distribution', 'Uniform Distribution']
+    distributions = ['Lognormal Distribution', 'Exponential Distribution', 'Uniform Distribution']
     
     # Calculate average metrics for each algorithm and distribution
     comparison_data = []
@@ -123,9 +125,9 @@ def plot_server_loads_comparison(all_results: Dict[str, List[Dict]], save_path: 
     server_loads_data = {}
     for algo in all_results.keys():
         if all_results[algo]:
-            # Get the last run with normal distribution and real server loads
+            # Get the last run with lognormal distribution and real server loads
             for result in reversed(all_results[algo]):
-                if 'Normal Distribution' in result and 'server_loads' in result:
+                if 'Lognormal Distribution' in result and 'server_loads' in result:
                     server_loads_data[algo] = result['server_loads']
                     break
     
@@ -191,12 +193,12 @@ def plot_server_loads_comparison(all_results: Dict[str, List[Dict]], save_path: 
 def analyze_results(all_results: Dict[str, List[Dict]]) -> pd.DataFrame:
     """Analyze and compare results from different algorithms"""
     analysis_data = []
-    valid_distributions = ['Normal Distribution', 'Exponential Distribution', 'Uniform Distribution']
+    valid_distributions = ['Lognormal Distribution', 'Exponential Distribution', 'Uniform Distribution']
     for balancer_name, results in all_results.items():
         for result in results:
             for dist_name, metrics in result.items():
                 if dist_name not in valid_distributions:
-                    continue  # 跳过server_loads等非分布项
+                    continue  # Skip non-distribution items like server_loads
                 analysis_data.append({
                     'Algorithm': balancer_name,
                     'Distribution': dist_name,
@@ -283,7 +285,7 @@ def main():
     
     # Generate requests with different distributions
     distributions = {
-        'Normal Distribution': lambda: generate_requests(num_requests, 'normal', mean=1.0, std=0.5),
+        'Lognormal Distribution': lambda: generate_requests(num_requests, 'lognormal', mean=0.0, sigma=0.5),
         'Exponential Distribution': lambda: generate_requests(num_requests, 'exponential', scale=1.0),
         'Uniform Distribution': lambda: generate_requests(num_requests, 'uniform', low=0.5, high=1.5)
     }
