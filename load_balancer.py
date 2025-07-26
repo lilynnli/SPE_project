@@ -21,20 +21,29 @@ class LoadBalancer(ABC):
         return self.server_loads
     
     def get_load_metrics(self) -> Dict:
-        """Calculate load balancing metrics"""
+        """Calculate load balancing metrics using Jain's Fairness Index"""
         current_time = time.time()
         elapsed_time = current_time - self.start_time
         
-        # Calculate dynamic load metrics
+        # Calculate basic load metrics
         loads = self.server_loads
         mean_load = np.mean(loads)
         std_load = np.std(loads)
         
-        # Calculate load balance score (between 0 and 1, closer to 1 means more balanced)
-        if mean_load == 0:
-            balance_score = 1.0
+        # Calculate Jain's Fairness Index for load balancing
+        # J = (Σx_i)² / (n * Σx_i²)
+        # Range: [1/n, 1], where 1 is perfectly fair/balanced
+        n = len(loads)
+        if n == 0:
+            balance_score = 0.0
         else:
-            balance_score = 1 - (std_load / mean_load)
+            sum_loads = sum(loads)
+            sum_squared_loads = sum(load**2 for load in loads)
+            
+            if sum_squared_loads == 0:
+                balance_score = 1.0  # All servers have zero load
+            else:
+                balance_score = (sum_loads**2) / (n * sum_squared_loads)
         
         return {
             'mean_load': mean_load,

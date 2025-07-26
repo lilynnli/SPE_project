@@ -74,8 +74,8 @@ def plot_comparison_results(all_results: Dict[str, List[Dict]], save_path: str =
     balance_data = pd.DataFrame(comparison_data)
     pivot_balance = balance_data.pivot(index='Distribution', columns='Algorithm', values='Balance Score')
     pivot_balance.plot(kind='bar', ax=ax1, color=['#FF6B6B', '#4ECDC4', '#45B7D1'])
-    ax1.set_title('Load Balance Score (Higher is Better)', pad=15)
-    ax1.set_ylabel('Balance Score')
+    ax1.set_title('Jain\'s Fairness Index (Higher is Better)', pad=15)
+    ax1.set_ylabel('Jain\'s Fairness Index')
     ax1.set_ylim(0, 1.05)
     ax1.legend(title='Algorithm', loc='upper right')
     ax1.tick_params(axis='x', rotation=45)
@@ -151,26 +151,26 @@ def plot_server_loads_comparison(all_results: Dict[str, List[Dict]], save_path: 
     ax1.set_xticklabels(['Server 1', 'Server 2', 'Server 3'])
     ax1.legend(loc='upper right')
     
-    # Balance score comparison
+    # Jain's Fairness Index comparison
     algorithms = list(server_loads_data.keys())
-    # calculate the average balance_score for each algorithm
-    balance_scores = []
+    # Calculate the average Jain's Fairness Index for each algorithm
+    fairness_scores = []
     for algo in algorithms:
-        # get all balance_scores for all distributions and all runs
+        # Get all Jain's Fairness Index scores for all distributions and all runs
         scores = []
         for result in all_results[algo]:
             for dist_metrics in result.values():
                 if isinstance(dist_metrics, dict) and 'balance_score' in dist_metrics:
-                    scores.append(dist_metrics['balance_score'])
-        balance_scores.append(np.mean(scores))
+                    scores.append(dist_metrics['balance_score'])  # balance_score now contains Jain's Fairness Index
+        fairness_scores.append(np.mean(scores))
     
-    bars = ax2.bar(algorithms, balance_scores, color=['#FF6B6B', '#4ECDC4', '#45B7D1'], alpha=0.8)
-    ax2.set_title('Load Balance Score Comparison', pad=20)  # Add padding to title
-    ax2.set_ylabel('Balance Score')
+    bars = ax2.bar(algorithms, fairness_scores, color=['#FF6B6B', '#4ECDC4', '#45B7D1'], alpha=0.8)
+    ax2.set_title('Jain\'s Fairness Index Comparison', pad=20)  # Add padding to title
+    ax2.set_ylabel('Jain\'s Fairness Index')
     ax2.set_ylim(0, 1.1)  # Increase y-axis limit to make room for labels
     
     # Add value labels on bars with better positioning
-    for bar, score in zip(bars, balance_scores):
+    for bar, score in zip(bars, fairness_scores):
         height = bar.get_height()
         # Position labels either inside bars (if score > 0.1) or above (if score <= 0.1)
         if score > 0.1:
@@ -261,13 +261,28 @@ def print_summary_report(comparison_data: List[Dict]):
     for algo in algorithms:
         algo_data = df[df['Algorithm'] == algo]
         print(f"\n{algo}:")
-        print(f"  • Average Balance Score: {algo_data['Balance Score'].mean():.3f}")
+        print(f"  • Average Jain's Fairness Index: {algo_data['Balance Score'].mean():.3f}")
         print(f"  • Average Load Std Dev: {algo_data['Std Load'].mean():.3f}")
         print(f"  • Average Throughput: {algo_data['Requests/sec'].mean():.0f} req/s")
         print(f"  • Average Execution Time: {algo_data['Execution Time'].mean():.4f}s")
     
     print("\n" + "="*80)
     sys.stdout.flush()  # Force flush
+
+def explain_jain_fairness_index():
+    """Explain Jain's Fairness Index for load balancing evaluation"""
+    print("\n📊 JAIN'S FAIRNESS INDEX EXPLANATION:")
+    print("-" * 50)
+    print("Jain's Fairness Index is a mathematical measure of fairness in resource allocation.")
+    print("Formula: J = (Σx_i)² / (n * Σx_i²)")
+    print("Where:")
+    print("  • x_i = load on server i")
+    print("  • n = number of servers")
+    print("  • Range: [1/n, 1]")
+    print("  • 1.0 = Perfect fairness (all servers equally loaded)")
+    print("  • 1/n = Worst fairness (all load on one server)")
+    print("  • For 3 servers: range is [0.33, 1.0]")
+    print("-" * 50)
 
 def main():
     # Set random seed for reproducibility
@@ -332,6 +347,7 @@ def main():
     
     # Print summary report
     print_summary_report(comparison_data)
+    explain_jain_fairness_index()
     
     # Save detailed results
     save_results(all_results, 'detailed_results')
