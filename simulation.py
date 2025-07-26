@@ -15,11 +15,9 @@ def set_random_seed(seed: int = 42):
     """Set random seed for reproducibility"""
     np.random.seed(seed)
 
-def generate_requests(num_requests: int, distribution: str = 'normal', **kwargs) -> np.ndarray:
+def generate_requests(num_requests: int, distribution: str = 'lognormal', **kwargs) -> np.ndarray:
     """Generate request loads with different distributions"""
-    if distribution == 'normal':
-        return np.random.normal(kwargs.get('mean', 1.0), kwargs.get('std', 0.5), num_requests)
-    elif distribution == 'lognormal':
+    if distribution == 'lognormal':
         return np.random.lognormal(kwargs.get('mean', 0.0), kwargs.get('sigma', 0.5), num_requests)
     elif distribution == 'exponential':
         return np.random.exponential(kwargs.get('scale', 1.0), num_requests)

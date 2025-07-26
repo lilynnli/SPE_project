@@ -45,7 +45,6 @@ This generates `results/request_distributions.png` showing:
 - **Lognormal Distribution**: Most realistic for web traffic (no negative values)
 - **Exponential Distribution**: Simulates bursty traffic patterns
 - **Uniform Distribution**: Tests worst-case load balancing scenarios
-- **Normal Distribution**: For comparison (includes negative values)
 
 ### Main Simulation
 Run the simulation and generate performance metrics and plots:
